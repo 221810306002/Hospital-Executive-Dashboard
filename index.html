@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital Executive Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #F5F7F6;
+    --surface: #FFFFFF;
+    --ink: #142832;
+    --ink-muted: #5B6E77;
+    --ink-faint: #8B9BA2;
+    --border: #E1E6E4;
+    --teal: #0F6E56;
+    --teal-bg: #E1F5EE;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+    --grid-line: #EAEEEC;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+  }
+  .masthead-left .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin: 0 0 4px;
+  }
+  .masthead-left h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .masthead-right {
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .masthead-right .range { color: var(--ink); font-weight: 600; }
+
+  .vital-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .vital {
+    background: var(--surface);
+    padding: 16px 14px;
+    position: relative;
+  }
+  .vital-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    margin: 0 0 8px;
+  }
+  .vital-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1;
+  }
+  .vital-value .unit { font-size: 13px; font-weight: 500; color: var(--ink-muted); margin-left: 2px; }
+  .vital-trend { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .vital-trend svg { display: block; }
+  .vital-delta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .delta-good { background: var(--teal-bg); color: var(--teal); }
+  .delta-bad { background: var(--red-bg); color: var(--red); }
+  .delta-neutral { background: var(--blue-bg); color: var(--blue); }
+
+  .panel-row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 20px 20px;
+  }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
+    margin: 0 0 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-title .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--teal-bg);
+    color: var(--teal);
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .chart-box { position: relative; width: 100%; }
+
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data-table th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
+    font-weight: 600;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.data-table td {
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--grid-line);
+    font-variant-numeric: tabular-nums;
+  }
+  table.data-table td.num, table.data-table th.num { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+  table.data-table tr:last-child td { border-bottom: none; }
+  .sev-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+  select.dept-filter {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 6px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  footer {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 900px) {
+    .vital-strip { grid-template-columns: repeat(3, 1fr); }
+    .panel-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="masthead-left">
+      <p class="eyebrow">Synthetic data / portfolio build</p>
+      <h1>Riverbend General &mdash; Executive Analytics</h1>
+    </div>
+    <div class="masthead-right">
+      <div>Data range <span class="range" id="date-range">-</span></div>
+      <div id="generated-at">-</div>
+    </div>
+  </div>
+
+  <div class="vital-strip" id="vital-strip"></div>
+
+  <div class="panel-row">
+    <div class="panel">
+      <p class="panel-title">Monthly volume &amp; length of stay <span class="badge">24 mo trend</span></p>
+      <div class="chart-box" style="height: 280px;">
+        <canvas id="trendChart" role="img" aria-label="Line chart of monthly admissions and average length of stay over 24 months"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Readmission &amp; mortality rate</p>
+      <div class="chart-box" style="height: 280px;">
+        <canvas id="rateChart" role="img" aria-label="Line chart of monthly readmission rate and mortality rate percentages"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-row">
+    <div class="panel">
+      <p class="panel-title">Department comparison</p>
+      <div class="chart-box" style="height: 260px;">
+        <canvas id="deptChart" role="img" aria-label="Horizontal bar chart comparing average length of stay by department"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <p class="panel-title">ICU utilization</p>
+      <div class="chart-box" style="height: 260px;">
+        <canvas id="icuChart" role="img" aria-label="Line chart of monthly ICU utilization percentage"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-row">
+    <div class="panel">
+      <p class="panel-title">Top diagnoses by encounter volume</p>
+      <table class="data-table" id="dx-table">
+        <thead>
+          <tr><th>ICD-10</th><th>Diagnosis</th><th class="num">Encounters</th><th class="num">Avg LOS</th><th class="num">Readmit %</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <p class="panel-title">
+        Physician performance
+        <select class="dept-filter" id="phys-filter"></select>
+      </p>
+      <table class="data-table" id="phys-table">
+        <thead>
+          <tr><th>Physician</th><th class="num">Cases</th><th class="num">Avg LOS</th><th class="num">Satisfaction</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <span>Source: sql/03_analytics_views.sql &rarr; etl/export_kpis.py &rarr; dashboard/kpi_data.json</span>
+    <span>Synthetic patients generated with Faker, modeled on Epic Clarity table conventions</span>
+  </footer>
+
+</div>
+
+<script>
+const DATA = {"vw_monthly_kpis": [{"year": 2024, "month": 1, "total_encounters": 643, "admissions": 213.0, "avg_length_of_stay": 2.34, "readmission_rate_pct": 15.96, "mortality_rate_pct": 4.34, "avg_satisfaction_score": 3.77}, {"year": 2024, "month": 2, "total_encounters": 612, "admissions": 205.0, "avg_length_of_stay": 2.11, "readmission_rate_pct": 16.1, "mortality_rate_pct": 6.38, "avg_satisfaction_score": 3.83}, {"year": 2024, "month": 3, "total_encounters": 688, "admissions": 212.0, "avg_length_of_stay": 2.17, "readmission_rate_pct": 15.09, "mortality_rate_pct": 4.69, "avg_satisfaction_score": 3.81}, {"year": 2024, "month": 4, "total_encounters": 651, "admissions": 219.0, "avg_length_of_stay": 2.23, "readmission_rate_pct": 13.24, "mortality_rate_pct": 2.98, "avg_satisfaction_score": 3.76}, {"year": 2024, "month": 5, "total_encounters": 658, "admissions": 222.0, "avg_length_of_stay": 2.24, "readmission_rate_pct": 15.32, "mortality_rate_pct": 5.23, "avg_satisfaction_score": 3.79}, {"year": 2024, "month": 6, "total_encounters": 644, "admissions": 233.0, "avg_length_of_stay": 2.4, "readmission_rate_pct": 16.74, "mortality_rate_pct": 6.45, "avg_satisfaction_score": 3.7}, {"year": 2024, "month": 7, "total_encounters": 654, "admissions": 230.0, "avg_length_of_stay": 2.22, "readmission_rate_pct": 11.74, "mortality_rate_pct": 4.71, "avg_satisfaction_score": 3.79}, {"year": 2024, "month": 8, "total_encounters": 620, "admissions": 209.0, "avg_length_of_stay": 2.2, "readmission_rate_pct": 13.88, "mortality_rate_pct": 3.2, "avg_satisfaction_score": 3.8}, {"year": 2024, "month": 9, "total_encounters": 604, "admissions": 194.0, "avg_length_of_stay": 2.36, "readmission_rate_pct": 15.98, "mortality_rate_pct": 4.49, "avg_satisfaction_score": 3.82}, {"year": 2024, "month": 10, "total_encounters": 641, "admissions": 207.0, "avg_length_of_stay": 2.31, "readmission_rate_pct": 18.36, "mortality_rate_pct": 3.36, "avg_satisfaction_score": 3.78}, {"year": 2024, "month": 11, "total_encounters": 592, "admissions": 185.0, "avg_length_of_stay": 2.21, "readmission_rate_pct": 22.7, "mortality_rate_pct": 4.55, "avg_satisfaction_score": 3.78}, {"year": 2024, "month": 12, "total_encounters": 662, "admissions": 198.0, "avg_length_of_stay": 2.1, "readmission_rate_pct": 15.15, "mortality_rate_pct": 4.42, "avg_satisfaction_score": 3.79}, {"year": 2025, "month": 1, "total_encounters": 635, "admissions": 213.0, "avg_length_of_stay": 2.33, "readmission_rate_pct": 14.55, "mortality_rate_pct": 4.29, "avg_satisfaction_score": 3.8}, {"year": 2025, "month": 2, "total_encounters": 532, "admissions": 182.0, "avg_length_of_stay": 2.09, "readmission_rate_pct": 17.03, "mortality_rate_pct": 5.23, "avg_satisfaction_score": 3.8}, {"year": 2025, "month": 3, "total_encounters": 649, "admissions": 212.0, "avg_length_of_stay": 2.11, "readmission_rate_pct": 15.57, "mortality_rate_pct": 4.71, "avg_satisfaction_score": 3.77}, {"year": 2025, "month": 4, "total_encounters": 605, "admissions": 196.0, "avg_length_of_stay": 2.24, "readmission_rate_pct": 13.27, "mortality_rate_pct": 5.54, "avg_satisfaction_score": 3.83}, {"year": 2025, "month": 5, "total_encounters": 678, "admissions": 198.0, "avg_length_of_stay": 2.36, "readmission_rate_pct": 13.13, "mortality_rate_pct": 4.12, "avg_satisfaction_score": 3.79}, {"year": 2025, "month": 6, "total_encounters": 586, "admissions": 181.0, "avg_length_of_stay": 2.25, "readmission_rate_pct": 17.13, "mortality_rate_pct": 6.78, "avg_satisfaction_score": 3.79}, {"year": 2025, "month": 7, "total_encounters": 686, "admissions": 235.0, "avg_length_of_stay": 2.23, "readmission_rate_pct": 17.45, "mortality_rate_pct": 3.26, "avg_satisfaction_score": 3.76}, {"year": 2025, "month": 8, "total_encounters": 693, "admissions": 210.0, "avg_length_of_stay": 2.26, "readmission_rate_pct": 13.33, "mortality_rate_pct": 3.74, "avg_satisfaction_score": 3.8}, {"year": 2025, "month": 9, "total_encounters": 628, "admissions": 203.0, "avg_length_of_stay": 2.28, "readmission_rate_pct": 17.24, "mortality_rate_pct": 4.23, "avg_satisfaction_score": 3.77}, {"year": 2025, "month": 10, "total_encounters": 644, "admissions": 218.0, "avg_length_of_stay": 2.3, "readmission_rate_pct": 14.68, "mortality_rate_pct": 4.67, "avg_satisfaction_score": 3.77}, {"year": 2025, "month": 11, "total_encounters": 616, "admissions": 219.0, "avg_length_of_stay": 2.24, "readmission_rate_pct": 16.44, "mortality_rate_pct": 5.99, "avg_satisfaction_score": 3.82}, {"year": 2025, "month": 12, "total_encounters": 632, "admissions": 203.0, "avg_length_of_stay": 2.36, "readmission_rate_pct": 13.79, "mortality_rate_pct": 5.8, "avg_satisfaction_score": 3.84}], "vw_department_performance": [{"department_name": "Emergency Department", "specialty": "Emergency Medicine", "total_encounters": 3881, "avg_length_of_stay": 2.26, "readmission_rate_pct": 5.62, "avg_satisfaction_score": 3.78, "mortality_rate_pct": 4.12}, {"department_name": "General Medicine", "specialty": "Internal Medicine", "total_encounters": 3874, "avg_length_of_stay": 1.4, "readmission_rate_pct": 5.45, "avg_satisfaction_score": 3.93, "mortality_rate_pct": 2.12}, {"department_name": "Cardiology", "specialty": "Cardiology", "total_encounters": 2050, "avg_length_of_stay": 2.51, "readmission_rate_pct": 4.34, "avg_satisfaction_score": 3.73, "mortality_rate_pct": 2.73}, {"department_name": "Medical ICU", "specialty": "Critical Care", "total_encounters": 1931, "avg_length_of_stay": 3.78, "readmission_rate_pct": 4.51, "avg_satisfaction_score": 3.55, "mortality_rate_pct": 5.49}, {"department_name": "Oncology", "specialty": "Oncology", "total_encounters": 994, "avg_length_of_stay": 3.49, "readmission_rate_pct": 6.84, "avg_satisfaction_score": 3.58, "mortality_rate_pct": 1.21}, {"department_name": "Labor & Delivery", "specialty": "Obstetrics", "total_encounters": 994, "avg_length_of_stay": 0.81, "readmission_rate_pct": 2.62, "avg_satisfaction_score": 4.03, "mortality_rate_pct": 1.61}, {"department_name": "Pediatrics", "specialty": "Pediatrics", "total_encounters": 514, "avg_length_of_stay": 1.67, "readmission_rate_pct": 9.14, "avg_satisfaction_score": 3.88, "mortality_rate_pct": 0.78}, {"department_name": "Orthopedics", "specialty": "Orthopedic Surgery", "total_encounters": 512, "avg_length_of_stay": 2.42, "readmission_rate_pct": 2.34, "avg_satisfaction_score": 3.81, "mortality_rate_pct": 2.15}, {"department_name": "General Surgery", "specialty": "Surgery", "total_encounters": 503, "avg_length_of_stay": 2.49, "readmission_rate_pct": 3.58, "avg_satisfaction_score": 3.7, "mortality_rate_pct": 1.19}], "vw_icu_utilization": [{"year": 2024, "month": 1, "icu_transfers": 29, "total_inpatient_encounters": 213, "icu_utilization_pct": 13.62}, {"year": 2024, "month": 2, "icu_transfers": 25, "total_inpatient_encounters": 205, "icu_utilization_pct": 12.2}, {"year": 2024, "month": 3, "icu_transfers": 21, "total_inpatient_encounters": 212, "icu_utilization_pct": 9.91}, {"year": 2024, "month": 4, "icu_transfers": 27, "total_inpatient_encounters": 219, "icu_utilization_pct": 12.33}, {"year": 2024, "month": 5, "icu_transfers": 24, "total_inpatient_encounters": 222, "icu_utilization_pct": 10.81}, {"year": 2024, "month": 6, "icu_transfers": 27, "total_inpatient_encounters": 233, "icu_utilization_pct": 11.59}, {"year": 2024, "month": 7, "icu_transfers": 19, "total_inpatient_encounters": 230, "icu_utilization_pct": 8.26}, {"year": 2024, "month": 8, "icu_transfers": 32, "total_inpatient_encounters": 209, "icu_utilization_pct": 15.31}, {"year": 2024, "month": 9, "icu_transfers": 27, "total_inpatient_encounters": 194, "icu_utilization_pct": 13.92}, {"year": 2024, "month": 10, "icu_transfers": 32, "total_inpatient_encounters": 207, "icu_utilization_pct": 15.46}, {"year": 2024, "month": 11, "icu_transfers": 25, "total_inpatient_encounters": 185, "icu_utilization_pct": 13.51}, {"year": 2024, "month": 12, "icu_transfers": 22, "total_inpatient_encounters": 198, "icu_utilization_pct": 11.11}, {"year": 2025, "month": 1, "icu_transfers": 24, "total_inpatient_encounters": 213, "icu_utilization_pct": 11.27}, {"year": 2025, "month": 2, "icu_transfers": 17, "total_inpatient_encounters": 182, "icu_utilization_pct": 9.34}, {"year": 2025, "month": 3, "icu_transfers": 30, "total_inpatient_encounters": 212, "icu_utilization_pct": 14.15}, {"year": 2025, "month": 4, "icu_transfers": 28, "total_inpatient_encounters": 196, "icu_utilization_pct": 14.29}, {"year": 2025, "month": 5, "icu_transfers": 32, "total_inpatient_encounters": 198, "icu_utilization_pct": 16.16}, {"year": 2025, "month": 6, "icu_transfers": 22, "total_inpatient_encounters": 181, "icu_utilization_pct": 12.15}, {"year": 2025, "month": 7, "icu_transfers": 28, "total_inpatient_encounters": 235, "icu_utilization_pct": 11.91}, {"year": 2025, "month": 8, "icu_transfers": 18, "total_inpatient_encounters": 210, "icu_utilization_pct": 8.57}, {"year": 2025, "month": 9, "icu_transfers": 31, "total_inpatient_encounters": 203, "icu_utilization_pct": 15.27}, {"year": 2025, "month": 10, "icu_transfers": 30, "total_inpatient_encounters": 218, "icu_utilization_pct": 13.76}, {"year": 2025, "month": 11, "icu_transfers": 17, "total_inpatient_encounters": 219, "icu_utilization_pct": 7.76}, {"year": 2025, "month": 12, "icu_transfers": 24, "total_inpatient_encounters": 203, "icu_utilization_pct": 11.82}], "vw_top_diagnoses": [{"icd10_code": "R07.9", "dx_name": "Chest pain, unspecified", "encounter_count": 1076, "avg_length_of_stay": 1.64, "readmission_rate_pct": 3.07}, {"icd10_code": "A41.9", "dx_name": "Sepsis, unspecified organism", "encounter_count": 1062, "avg_length_of_stay": 4.26, "readmission_rate_pct": 3.58}, {"icd10_code": "J18.9", "dx_name": "Pneumonia, unspecified organism", "encounter_count": 1057, "avg_length_of_stay": 2.48, "readmission_rate_pct": 3.22}, {"icd10_code": "I50.9", "dx_name": "Heart failure, unspecified", "encounter_count": 1055, "avg_length_of_stay": 3.3, "readmission_rate_pct": 7.01}, {"icd10_code": "S72.001A", "dx_name": "Fracture of neck of femur, initial encounter", "encounter_count": 1038, "avg_length_of_stay": 2.42, "readmission_rate_pct": 3.37}, {"icd10_code": "I10", "dx_name": "Essential hypertension", "encounter_count": 1026, "avg_length_of_stay": 0.84, "readmission_rate_pct": 6.14}, {"icd10_code": "N39.0", "dx_name": "Urinary tract infection, site not specified", "encounter_count": 999, "avg_length_of_stay": 0.81, "readmission_rate_pct": 3.9}, {"icd10_code": "E11.9", "dx_name": "Type 2 diabetes mellitus without complications", "encounter_count": 995, "avg_length_of_stay": 1.63, "readmission_rate_pct": 7.04}, {"icd10_code": "K35.80", "dx_name": "Unspecified acute appendicitis", "encounter_count": 995, "avg_length_of_stay": 2.49, "readmission_rate_pct": 4.22}, {"icd10_code": "C50.911", "dx_name": "Malignant neoplasm of breast, unspecified", "encounter_count": 994, "avg_length_of_stay": 3.49, "readmission_rate_pct": 6.84}, {"icd10_code": "O80", "dx_name": "Encounter for full-term uncomplicated delivery", "encounter_count": 994, "avg_length_of_stay": 0.81, "readmission_rate_pct": 2.62}, {"icd10_code": "F32.9", "dx_name": "Major depressive disorder, single episode, unspecified", "encounter_count": 993, "avg_length_of_stay": 0.82, "readmission_rate_pct": 5.84}, {"icd10_code": "I21.9", "dx_name": "Acute myocardial infarction, unspecified", "encounter_count": 990, "avg_length_of_stay": 4.28, "readmission_rate_pct": 2.83}, {"icd10_code": "J44.1", "dx_name": "COPD with acute exacerbation", "encounter_count": 990, "avg_length_of_stay": 2.53, "readmission_rate_pct": 7.27}, {"icd10_code": "J45.901", "dx_name": "Unspecified asthma with acute exacerbation", "encounter_count": 989, "avg_length_of_stay": 1.63, "readmission_rate_pct": 9.71}], "vw_physician_performance": [{"prov_name": "Dr. Fowler", "department_name": "Emergency Department", "total_encounters": 1008, "avg_length_of_stay": 2.24, "avg_satisfaction_score": 3.78, "readmission_rate_pct": 5.46}, {"prov_name": "Dr. Johnson", "department_name": "General Medicine", "total_encounters": 984, "avg_length_of_stay": 1.41, "avg_satisfaction_score": 3.94, "readmission_rate_pct": 5.59}, {"prov_name": "Dr. Gardner", "department_name": "General Medicine", "total_encounters": 982, "avg_length_of_stay": 1.4, "avg_satisfaction_score": 3.94, "readmission_rate_pct": 5.19}, {"prov_name": "Dr. Hill", "department_name": "Emergency Department", "total_encounters": 964, "avg_length_of_stay": 2.32, "avg_satisfaction_score": 3.77, "readmission_rate_pct": 6.12}, {"prov_name": "Dr. Johnson", "department_name": "Emergency Department", "total_encounters": 958, "avg_length_of_stay": 2.18, "avg_satisfaction_score": 3.78, "readmission_rate_pct": 5.64}, {"prov_name": "Dr. Santos", "department_name": "General Medicine", "total_encounters": 957, "avg_length_of_stay": 1.42, "avg_satisfaction_score": 3.94, "readmission_rate_pct": 6.06}, {"prov_name": "Dr. Walker", "department_name": "Emergency Department", "total_encounters": 951, "avg_length_of_stay": 2.28, "avg_satisfaction_score": 3.8, "readmission_rate_pct": 5.26}, {"prov_name": "Dr. Gonzalez", "department_name": "General Medicine", "total_encounters": 951, "avg_length_of_stay": 1.38, "avg_satisfaction_score": 3.91, "readmission_rate_pct": 4.94}, {"prov_name": "Dr. Pacheco", "department_name": "Cardiology", "total_encounters": 547, "avg_length_of_stay": 2.52, "avg_satisfaction_score": 3.74, "readmission_rate_pct": 3.47}, {"prov_name": "Dr. Smith", "department_name": "Cardiology", "total_encounters": 525, "avg_length_of_stay": 2.55, "avg_satisfaction_score": 3.75, "readmission_rate_pct": 5.52}, {"prov_name": "Dr. Mcclain", "department_name": "Medical ICU", "total_encounters": 523, "avg_length_of_stay": 3.8, "avg_satisfaction_score": 3.52, "readmission_rate_pct": 3.82}, {"prov_name": "Dr. Doyle", "department_name": "Medical ICU", "total_encounters": 498, "avg_length_of_stay": 3.75, "avg_satisfaction_score": 3.56, "readmission_rate_pct": 5.82}, {"prov_name": "Dr. Robinson", "department_name": "Cardiology", "total_encounters": 490, "avg_length_of_stay": 2.5, "avg_satisfaction_score": 3.71, "readmission_rate_pct": 3.88}, {"prov_name": "Dr. Lawrence", "department_name": "Cardiology", "total_encounters": 488, "avg_length_of_stay": 2.46, "avg_satisfaction_score": 3.74, "readmission_rate_pct": 4.51}, {"prov_name": "Dr. Davis", "department_name": "Labor & Delivery", "total_encounters": 485, "avg_length_of_stay": 0.84, "avg_satisfaction_score": 4.02, "readmission_rate_pct": 3.09}, {"prov_name": "Dr. Rhodes", "department_name": "Medical ICU", "total_encounters": 463, "avg_length_of_stay": 3.73, "avg_satisfaction_score": 3.58, "readmission_rate_pct": 4.54}, {"prov_name": "Dr. Miller", "department_name": "Medical ICU", "total_encounters": 447, "avg_length_of_stay": 3.85, "avg_satisfaction_score": 3.55, "readmission_rate_pct": 3.8}, {"prov_name": "Dr. Roman", "department_name": "Oncology", "total_encounters": 272, "avg_length_of_stay": 3.54, "avg_satisfaction_score": 3.62, "readmission_rate_pct": 4.78}, {"prov_name": "Dr. Munoz", "department_name": "Oncology", "total_encounters": 259, "avg_length_of_stay": 3.32, "avg_satisfaction_score": 3.62, "readmission_rate_pct": 6.95}, {"prov_name": "Dr. Rogers", "department_name": "Labor & Delivery", "total_encounters": 257, "avg_length_of_stay": 0.81, "avg_satisfaction_score": 4.06, "readmission_rate_pct": 1.17}, {"prov_name": "Dr. Bernard", "department_name": "Labor & Delivery", "total_encounters": 252, "avg_length_of_stay": 0.75, "avg_satisfaction_score": 4.01, "readmission_rate_pct": 3.17}, {"prov_name": "Dr. Blair", "department_name": "Oncology", "total_encounters": 233, "avg_length_of_stay": 3.51, "avg_satisfaction_score": 3.54, "readmission_rate_pct": 6.87}, {"prov_name": "Dr. Abbott", "department_name": "Oncology", "total_encounters": 230, "avg_length_of_stay": 3.6, "avg_satisfaction_score": 3.55, "readmission_rate_pct": 9.13}, {"prov_name": "Dr. Moore", "department_name": "Orthopedics", "total_encounters": 151, "avg_length_of_stay": 2.31, "avg_satisfaction_score": 3.81, "readmission_rate_pct": 1.32}, {"prov_name": "Dr. Shaffer", "department_name": "Orthopedics", "total_encounters": 140, "avg_length_of_stay": 2.51, "avg_satisfaction_score": 3.89, "readmission_rate_pct": 3.57}, {"prov_name": "Dr. Calderon", "department_name": "General Surgery", "total_encounters": 140, "avg_length_of_stay": 2.53, "avg_satisfaction_score": 3.69, "readmission_rate_pct": 2.14}, {"prov_name": "Dr. Arnold", "department_name": "Pediatrics", "total_encounters": 139, "avg_length_of_stay": 1.77, "avg_satisfaction_score": 3.93, "readmission_rate_pct": 6.47}, {"prov_name": "Dr. Gray", "department_name": "Pediatrics", "total_encounters": 136, "avg_length_of_stay": 1.56, "avg_satisfaction_score": 3.85, "readmission_rate_pct": 13.24}, {"prov_name": "Dr. Montgomery", "department_name": "General Surgery", "total_encounters": 126, "avg_length_of_stay": 2.46, "avg_satisfaction_score": 3.76, "readmission_rate_pct": 4.76}, {"prov_name": "Dr. Herrera", "department_name": "Pediatrics", "total_encounters": 123, "avg_length_of_stay": 1.66, "avg_satisfaction_score": 3.89, "readmission_rate_pct": 11.38}, {"prov_name": "Dr. Ray", "department_name": "General Surgery", "total_encounters": 119, "avg_length_of_stay": 2.45, "avg_satisfaction_score": 3.63, "readmission_rate_pct": 5.04}, {"prov_name": "Dr. Hensley", "department_name": "General Surgery", "total_encounters": 118, "avg_length_of_stay": 2.5, "avg_satisfaction_score": 3.69, "readmission_rate_pct": 2.54}, {"prov_name": "Dr. Dudley", "department_name": "Pediatrics", "total_encounters": 116, "avg_length_of_stay": 1.71, "avg_satisfaction_score": 3.85, "readmission_rate_pct": 5.17}, {"prov_name": "Dr. Wolfe", "department_name": "Orthopedics", "total_encounters": 111, "avg_length_of_stay": 2.54, "avg_satisfaction_score": 3.78, "readmission_rate_pct": 2.7}, {"prov_name": "Dr. Peterson", "department_name": "Orthopedics", "total_encounters": 110, "avg_length_of_stay": 2.36, "avg_satisfaction_score": 3.78, "readmission_rate_pct": 1.82}]};
+
+function fmtMonth(y, m) {
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+
+function sparkline(values, color) {
+  const w = 64, h = 20, pad = 2;
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || 1;
+  const step = (w - pad * 2) / (values.length - 1 || 1);
+  const points = values.map((v, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+
+function buildVitals() {
+  const monthly = DATA.vw_monthly_kpis;
+  const latest = monthly[monthly.length - 1];
+  const prior = monthly[monthly.length - 2] || latest;
+  const strip = document.getElementById('vital-strip');
+
+  const admissionsSeries = monthly.slice(-12).map(r => r.admissions);
+  const losSeries = monthly.slice(-12).map(r => r.avg_length_of_stay);
+  const readmitSeries = monthly.slice(-12).map(r => r.readmission_rate_pct);
+  const mortalitySeries = monthly.slice(-12).map(r => r.mortality_rate_pct);
+  const satSeries = monthly.slice(-12).map(r => r.avg_satisfaction_score);
+
+  const icu = DATA.vw_icu_utilization;
+  const icuLatest = icu[icu.length - 1];
+  const icuSeries = icu.slice(-12).map(r => r.icu_utilization_pct);
+
+  function delta(cur, prev, lowerIsBetter) {
+    const diff = cur - prev;
+    const good = lowerIsBetter ? diff <= 0 : diff >= 0;
+    const cls = Math.abs(diff) < 0.05 ? 'delta-neutral' : (good ? 'delta-good' : 'delta-bad');
+    const sign = diff > 0 ? '+' : '';
+    return `<span class="vital-delta ${cls}">${sign}${diff.toFixed(1)} vs prior mo</span>`;
+  }
+
+  const vitals = [
+    {
+      label: 'Admissions',
+      value: latest.admissions,
+      unit: '',
+      series: admissionsSeries,
+      color: '#185FA5',
+      deltaHtml: delta(latest.admissions, prior.admissions, false),
+    },
+    {
+      label: 'Avg length of stay',
+      value: latest.avg_length_of_stay.toFixed(1),
+      unit: 'days',
+      series: losSeries,
+      color: '#0F6E56',
+      deltaHtml: delta(latest.avg_length_of_stay, prior.avg_length_of_stay, true),
+    },
+    {
+      label: 'Readmission rate',
+      value: latest.readmission_rate_pct.toFixed(1),
+      unit: '%',
+      series: readmitSeries,
+      color: '#854F0B',
+      deltaHtml: delta(latest.readmission_rate_pct, prior.readmission_rate_pct, true),
+    },
+    {
+      label: 'Mortality rate',
+      value: latest.mortality_rate_pct.toFixed(1),
+      unit: '%',
+      series: mortalitySeries,
+      color: '#A32D2D',
+      deltaHtml: delta(latest.mortality_rate_pct, prior.mortality_rate_pct, true),
+    },
+    {
+      label: 'ICU utilization',
+      value: icuLatest ? icuLatest.icu_utilization_pct.toFixed(1) : '-',
+      unit: '%',
+      series: icuSeries,
+      color: '#534AB7',
+      deltaHtml: icu.length > 1 ? delta(icuLatest.icu_utilization_pct, icu[icu.length-2].icu_utilization_pct, true) : '',
+    },
+    {
+      label: 'Patient satisfaction',
+      value: latest.avg_satisfaction_score.toFixed(1),
+      unit: '/5',
+      series: satSeries,
+      color: '#0F6E56',
+      deltaHtml: delta(latest.avg_satisfaction_score, prior.avg_satisfaction_score, false),
+    },
+  ];
+
+  strip.innerHTML = vitals.map(v => `
+    <div class="vital">
+      <p class="vital-label">${v.label}</p>
+      <p class="vital-value">${v.value}<span class="unit">${v.unit}</span></p>
+      <div class="vital-trend">
+        ${sparkline(v.series, v.color)}
+        ${v.deltaHtml}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('date-range').textContent =
+    `${fmtMonth(monthly[0].year, monthly[0].month)} – ${fmtMonth(latest.year, latest.month)}`;
+  document.getElementById('generated-at').textContent = 'Rebuilt from warehouse export';
+}
+
+function buildTrendChart() {
+  const monthly = DATA.vw_monthly_kpis;
+  const labels = monthly.map(r => fmtMonth(r.year, r.month));
+  new Chart(document.getElementById('trendChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Admissions',
+          data: monthly.map(r => r.admissions),
+          backgroundColor: '#B5D4F4',
+          borderRadius: 3,
+          yAxisID: 'y',
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: 'Avg length of stay (days)',
+          data: monthly.map(r => r.avg_length_of_stay),
+          borderColor: '#0F6E56',
+          backgroundColor: '#0F6E56',
+          borderWidth: 2,
+          pointRadius: 2,
+          tension: 0.25,
+          yAxisID: 'y1',
+          order: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        y: { position: 'left', title: { display: true, text: 'Admissions' }, grid: { color: '#EAEEEC' } },
+        y1: { position: 'right', title: { display: true, text: 'Avg LOS (days)' }, grid: { display: false } },
+        x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
+      },
+      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+    },
+  });
+}
+
+function buildRateChart() {
+  const monthly = DATA.vw_monthly_kpis;
+  const labels = monthly.map(r => fmtMonth(r.year, r.month));
+  new Chart(document.getElementById('rateChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Readmission %',
+          data: monthly.map(r => r.readmission_rate_pct),
+          borderColor: '#854F0B',
+          backgroundColor: 'rgba(133,79,11,0.08)',
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: true,
+          tension: 0.25,
+        },
+        {
+          label: 'Mortality %',
+          data: monthly.map(r => r.mortality_rate_pct),
+          borderColor: '#A32D2D',
+          backgroundColor: 'rgba(163,45,45,0.08)',
+          borderWidth: 2,
+          borderDash: [4, 3],
+          pointRadius: 2,
+          fill: true,
+          tension: 0.25,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { title: { display: true, text: 'Percent' }, grid: { color: '#EAEEEC' } },
+        x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
+      },
+      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+    },
+  });
+}
+
+function buildDeptChart() {
+  const depts = [...DATA.vw_department_performance].sort((a, b) => b.avg_length_of_stay - a.avg_length_of_stay);
+  new Chart(document.getElementById('deptChart'), {
+    type: 'bar',
+    data: {
+      labels: depts.map(d => d.department_name),
+      datasets: [{
+        label: 'Avg length of stay (days)',
+        data: depts.map(d => d.avg_length_of_stay),
+        backgroundColor: '#7F77DD',
+        borderRadius: 3,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: 'Days' }, grid: { color: '#EAEEEC' } },
+        y: { grid: { display: false } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
+function buildIcuChart() {
+  const icu = DATA.vw_icu_utilization;
+  const labels = icu.map(r => fmtMonth(r.year, r.month));
+  new Chart(document.getElementById('icuChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'ICU utilization %',
+        data: icu.map(r => r.icu_utilization_pct),
+        borderColor: '#534AB7',
+        backgroundColor: 'rgba(83,74,183,0.08)',
+        borderWidth: 2,
+        pointRadius: 2,
+        fill: true,
+        tension: 0.25,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { title: { display: true, text: 'Percent of inpatient volume' }, grid: { color: '#EAEEEC' } },
+        x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
+function severityColor(readmitPct) {
+  if (readmitPct >= 18) return '#A32D2D';
+  if (readmitPct >= 12) return '#854F0B';
+  return '#0F6E56';
+}
+
+function buildDxTable() {
+  const rows = [...DATA.vw_top_diagnoses].sort((a, b) => b.encounter_count - a.encounter_count).slice(0, 10);
+  const tbody = document.querySelector('#dx-table tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="sev-dot" style="background:${severityColor(r.readmission_rate_pct)}"></span>${r.icd10_code}</td>
+      <td>${r.dx_name}</td>
+      <td class="num">${r.encounter_count.toLocaleString()}</td>
+      <td class="num">${r.avg_length_of_stay.toFixed(1)}</td>
+      <td class="num">${r.readmission_rate_pct.toFixed(1)}%</td>
+    </tr>
+  `).join('');
+}
+
+function buildPhysTable(deptFilter) {
+  let rows = [...DATA.vw_physician_performance];
+  if (deptFilter && deptFilter !== 'All departments') {
+    rows = rows.filter(r => r.department_name === deptFilter);
+  }
+  rows = rows.sort((a, b) => b.total_encounters - a.total_encounters).slice(0, 10);
+  const tbody = document.querySelector('#phys-table tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.prov_name}<br><span style="color:var(--ink-faint); font-size:11px;">${r.department_name}</span></td>
+      <td class="num">${r.total_encounters}</td>
+      <td class="num">${r.avg_length_of_stay.toFixed(1)}</td>
+      <td class="num">${r.avg_satisfaction_score.toFixed(1)}</td>
+    </tr>
+  `).join('');
+}
+
+function buildPhysFilter() {
+  const depts = ['All departments', ...new Set(DATA.vw_physician_performance.map(r => r.department_name))];
+  const select = document.getElementById('phys-filter');
+  select.innerHTML = depts.map(d => `<option value="${d}">${d}</option>`).join('');
+  select.addEventListener('change', () => buildPhysTable(select.value));
+}
+
+buildVitals();
+buildTrendChart();
+buildRateChart();
+buildDeptChart();
+buildIcuChart();
+buildDxTable();
+buildPhysFilter();
+buildPhysTable('All departments');
+</script>
+</body>
+</html>

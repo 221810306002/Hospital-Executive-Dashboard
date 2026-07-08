@@ -1,0 +1,16 @@
+icd10_code,dx_name,encounter_count,avg_length_of_stay,readmission_rate_pct
+R07.9,"Chest pain, unspecified",1076,1.64,3.07
+A41.9,"Sepsis, unspecified organism",1062,4.26,3.58
+J18.9,"Pneumonia, unspecified organism",1057,2.48,3.22
+I50.9,"Heart failure, unspecified",1055,3.3,7.01
+S72.001A,"Fracture of neck of femur, initial encounter",1038,2.42,3.37
+I10,Essential hypertension,1026,0.84,6.14
+N39.0,"Urinary tract infection, site not specified",999,0.81,3.9
+E11.9,Type 2 diabetes mellitus without complications,995,1.63,7.04
+K35.80,Unspecified acute appendicitis,995,2.49,4.22
+C50.911,"Malignant neoplasm of breast, unspecified",994,3.49,6.84
+O80,Encounter for full-term uncomplicated delivery,994,0.81,2.62
+F32.9,"Major depressive disorder, single episode, unspecified",993,0.82,5.84
+I21.9,"Acute myocardial infarction, unspecified",990,4.28,2.83
+J44.1,COPD with acute exacerbation,990,2.53,7.27
+J45.901,Unspecified asthma with acute exacerbation,989,1.63,9.71

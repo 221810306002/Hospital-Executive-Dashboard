@@ -1,0 +1,10 @@
+department_name,specialty,total_encounters,avg_length_of_stay,readmission_rate_pct,avg_satisfaction_score,mortality_rate_pct
+Emergency Department,Emergency Medicine,3881,2.26,5.62,3.78,4.12
+General Medicine,Internal Medicine,3874,1.4,5.45,3.93,2.12
+Cardiology,Cardiology,2050,2.51,4.34,3.73,2.73
+Medical ICU,Critical Care,1931,3.78,4.51,3.55,5.49
+Oncology,Oncology,994,3.49,6.84,3.58,1.21
+Labor & Delivery,Obstetrics,994,0.81,2.62,4.03,1.61
+Pediatrics,Pediatrics,514,1.67,9.14,3.88,0.78
+Orthopedics,Orthopedic Surgery,512,2.42,2.34,3.81,2.15
+General Surgery,Surgery,503,2.49,3.58,3.7,1.19
